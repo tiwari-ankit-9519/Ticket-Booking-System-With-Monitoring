@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: "ticket-booking-monitor"
+
+scrape_configs:
+  - job_name: "ticket-booking-api"
+    static_configs:
+      - targets: ["host.docker.internal:3000"]
+    metrics_path: "/metrics"
+    scrape_interval: 10s
+    scrape_timeout: 5s

@@ -1,0 +1,395 @@
+generator client {
+  provider = "prisma-client"
+  output   = "./generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                 String             @id @default(uuid())
+  email              String             @unique
+  password           String
+  firstName          String             @map("first_name")
+  lastName           String             @map("last_name")
+  phoneNumber        String?            @map("phone_number")
+  role               UserRole           @default(USER)
+  isActive           Boolean            @default(true) @map("is_active")
+  isEmailVerified    Boolean            @default(false) @map("is_email_verified")
+  lastLoginAt        DateTime?          @map("last_login_at")
+  lastLoginIp        String?            @map("last_login_ip")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+  notification       Notification[]
+  eventsCreated      Event[]            @relation("EventCreator")
+  organizerProfile   OrganizerProfile?
+  organizersApproved OrganizerProfile[] @relation("OrganizerApprover")
+
+  bookings      Booking[]
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+
+  @@index([email])
+  @@index([role])
+  @@index([isActive])
+  @@map("users")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+  ORGANIZER
+}
+
+enum OrganizerVerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+model OrganizerProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  businessName         String  @db.VarChar(200)
+  businessRegistration String? @db.VarChar(100)
+  taxId                String? @db.VarChar(100)
+  website              String? @db.VarChar(500)
+  socialMediaLinks     Json?
+  description          String  @db.Text
+  businessAddress      String? @db.VarChar(500)
+  businessCity         String? @db.VarChar(100)
+  businessState        String? @db.VarChar(100)
+  businessCountry      String? @db.VarChar(100)
+
+  verificationStatus    OrganizerVerificationStatus @default(PENDING)
+  verificationDocuments String[]
+
+  rejectionReason String? @db.Text
+
+  eventsCreated   Int     @default(0)
+  eventsCompleted Int     @default(0)
+  eventsPublished Int     @default(0)
+  totalRevenue    Decimal @default(0) @db.Decimal(12, 2)
+  reputationScore Float   @default(0)
+
+  approvedBy String?
+  approver   User?     @relation("OrganizerApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
+  approvedAt DateTime?
+
+  suspendedBy      String?
+  suspendedAt      DateTime?
+  suspensionReason String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([verificationStatus])
+  @@map("organizer_profiles")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  userId    String    @map("user_id")
+  expiresAt DateTime  @map("expires_at")
+  isRevoked Boolean   @default(false) @map("is_revoked")
+  ipAddress String?   @map("ip_address")
+  userAgent String?   @map("user_agent") @db.Text
+  createdAt DateTime  @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model Event {
+  id               String        @id @default(cuid())
+  title            String        @db.VarChar(200)
+  description      String        @db.Text
+  category         EventCategory
+  venue            String        @db.VarChar(200)
+  address          String        @db.VarChar(500)
+  city             String        @db.VarChar(100)
+  state            String        @db.VarChar(100)
+  country          String        @db.VarChar(100)
+  latitude         Float?
+  longitude        Float?
+  eventDate        DateTime
+  startTime        DateTime
+  endTime          DateTime
+  totalSeats       Int
+  availableSeats   Int
+  pricePerSeat     Decimal       @db.Decimal(10, 2)
+  currency         String        @default("INR") @db.VarChar(10)
+  imageUrl         String?       @db.VarChar(500)
+  status           EventStatus   @default(DRAFT)
+  isFeatured       Boolean       @default(false)
+  tags             String[]
+  organizerName    String        @db.VarChar(200)
+  organizerContact String        @db.VarChar(50)
+
+  createdBy String?
+  creator   User?   @relation("EventCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  bookings Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([city])
+  @@index([eventDate])
+  @@index([status])
+  @@index([createdBy])
+  @@map("events")
+}
+
+enum EventCategory {
+  CONCERT
+  SPORTS
+  THEATER
+  CONFERENCE
+  WORKSHOP
+  COMEDY
+  FESTIVAL
+  OTHER
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  UPCOMING
+  ONGOING
+  COMPLETED
+  CANCELLED
+  POSTPONED
+  SOLD_OUT
+}
+
+model Booking {
+  id                 String        @id @default(uuid())
+  userId             String        @map("user_id")
+  eventId            String        @map("event_id")
+  seatsBooked        Int           @map("seats_booked")
+  totalPrice         Decimal       @map("total_price") @db.Decimal(10, 2)
+  status             BookingStatus @default(PENDING)
+  bookingReference   String        @unique @map("booking_reference")
+  paymentIntentId    String?       @unique @map("payment_intent_id")
+  paymentMethod      String?       @map("payment_method")
+  paymentStatus      PaymentStatus @default(PENDING) @map("payment_status")
+  paidAt             DateTime?     @map("paid_at")
+  cancelledAt        DateTime?     @map("cancelled_at")
+  cancellationReason String?       @map("cancellation_reason") @db.Text
+  refundAmount       Decimal?      @map("refund_amount") @db.Decimal(10, 2)
+  refundedAt         DateTime?     @map("refunded_at")
+  notes              String?       @db.Text
+  ipAddress          String?       @map("ip_address")
+  userAgent          String?       @map("user_agent") @db.Text
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([bookingReference])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@map("bookings")
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+model AuditLog {
+  id             String      @id @default(uuid())
+  userId         String?     @map("user_id")
+  action         AuditAction
+  entityType     EntityType  @map("entity_type")
+  entityId       String?     @map("entity_id")
+  oldValue       Json?       @map("old_value")
+  newValue       Json?       @map("new_value")
+  ipAddress      String      @map("ip_address")
+  userAgent      String?     @map("user_agent") @db.Text
+  method         String?
+  endpoint       String?
+  statusCode     Int?        @map("status_code")
+  responseTime   Int?        @map("response_time")
+  errorMessage   String?     @map("error_message") @db.Text
+  metadata       Json?
+  browser        String?
+  browserVersion String?     @map("browser_version")
+  os             String?
+  osVersion      String?     @map("os_version")
+  device         String?
+  deviceType     String?     @map("device_type")
+  platform       String?
+  isMobile       Boolean?    @map("is_mobile")
+  isBot          Boolean?    @map("is_bot")
+  country        String?
+  city           String?
+  region         String?
+  timezone       String?
+  latitude       Float?
+  longitude      Float?
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType])
+  @@index([entityId])
+  @@index([ipAddress])
+  @@index([createdAt])
+  @@index([statusCode])
+  @@map("audit_logs")
+}
+
+enum AuditAction {
+  USER_REGISTER
+  USER_LOGIN
+  USER_LOGOUT
+  USER_UPDATE
+  USER_DELETE
+  USER_PASSWORD_CHANGE
+  USER_PASSWORD_RESET
+  USER_EMAIL_VERIFY
+  EVENT_CREATE
+  EVENT_UPDATE
+  EVENT_DELETE
+  EVENT_VIEW
+  BOOKING_CREATE
+  BOOKING_UPDATE
+  BOOKING_CANCEL
+  BOOKING_REFUND
+  PAYMENT_INITIATED
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  API_REQUEST
+  API_ERROR
+  UNAUTHORIZED_ACCESS
+  RATE_LIMIT_EXCEEDED
+  SYSTEM_ERROR
+  ORGANIZER_REQUEST
+  ORGANIZER_UPDATE
+  ORGANIZER_APPROVE
+  ORGANIZER_REJECT
+  ORGANIZER_SUSPEND
+  ORGANIZER_REACTIVATE
+}
+
+enum EntityType {
+  USER
+  EVENT
+  BOOKING
+  REFRESH_TOKEN
+  AUDIT_LOG
+  SYSTEM
+}
+
+model SystemConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String   @db.Text
+  dataType    String   @default("string") @map("data_type")
+  category    String?
+  description String?  @db.Text
+  isPublic    Boolean  @default(false) @map("is_public")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([key])
+  @@index([category])
+  @@map("system_config")
+}
+
+model EmailQueue {
+  id           String           @id @default(uuid())
+  to           String
+  subject      String
+  body         String           @db.Text
+  htmlBody     String?          @map("html_body") @db.Text
+  status       EmailQueueStatus @default(PENDING)
+  attempts     Int              @default(0)
+  maxAttempts  Int              @default(3) @map("max_attempts")
+  priority     Int              @default(5)
+  scheduledAt  DateTime?        @map("scheduled_at")
+  sentAt       DateTime?        @map("sent_at")
+  errorMessage String?          @map("error_message") @db.Text
+  metadata     Json?
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([priority])
+  @@index([createdAt])
+  @@map("email_queue")
+}
+
+enum EmailQueueStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  title     String
+  message   String           @db.Text
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  EVENT_REMINDER
+  EVENT_CANCELLED
+  EVENT_UPDATED
+  SYSTEM_ANNOUNCEMENT
+  EMAIL_VERIFIED
+  PASSWORD_CHANGED
+}
