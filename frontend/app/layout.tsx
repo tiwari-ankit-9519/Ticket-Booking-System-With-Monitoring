@@ -1,17 +1,14 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Inter } from "next/font/google";
+import { QueryProvider } from "./providers";
+import { Toaster } from "sonner";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Code Review AI - AI-Powered Code Analysis",
-  description:
-    "Analyze your code for security vulnerabilities, performance issues, and best practices using advanced AI technology.",
+  title: "EventTicket - Book Your Next Experience",
+  description: "Discover and book tickets for amazing events near you",
 };
 
 export default function RootLayout({
@@ -20,8 +17,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={geistSans.variable}>
-      <body className={`${geistSans.className} antialiased`}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <QueryProvider>
+          {children}
+          <Toaster position="top-right" richColors />
+        </QueryProvider>
+      </body>
     </html>
   );
 }
