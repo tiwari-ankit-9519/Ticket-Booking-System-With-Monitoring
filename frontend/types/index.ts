@@ -1,4 +1,3 @@
-// User Types
 export interface User {
   id: string;
   email: string;
@@ -33,7 +32,6 @@ export interface OrganizerProfile {
   user?: User;
 }
 
-// Event Types
 export interface Event {
   id: string;
   title: string;
@@ -61,7 +59,6 @@ export interface Event {
   };
 }
 
-// Booking Types
 export interface Booking {
   id: string;
   userId: string;
@@ -81,7 +78,6 @@ export interface Booking {
   event?: Event;
 }
 
-// Payment Types
 export interface Payment {
   id: string;
   bookingId: string;
@@ -98,7 +94,6 @@ export interface Payment {
   updatedAt: string;
 }
 
-// Notification Metadata Types
 export interface BookingNotificationMetadata {
   action:
     | "booking_confirmed"
@@ -152,7 +147,6 @@ export type NotificationMetadata =
   | OrganizerNotificationMetadata
   | SystemNotificationMetadata;
 
-// Notification Types
 export interface Notification {
   id: string;
   userId: string;
@@ -172,7 +166,6 @@ export interface Notification {
   updatedAt: string;
 }
 
-// Analytics Types
 export interface DashboardStats {
   totalRevenue: number;
   totalBookings: number;
@@ -205,7 +198,6 @@ export interface BookingAnalytics {
   }>;
 }
 
-// Form Types
 export interface LoginFormData {
   email: string;
   password: string;
