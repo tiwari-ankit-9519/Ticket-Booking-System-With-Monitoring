@@ -44,7 +44,7 @@ export interface Event {
   address: string;
   startDate: string;
   endDate: string;
-  price: number;
+  pricePerSeat: number;
   totalSeats: number;
   availableSeats: number;
   imageUrl: string | null;

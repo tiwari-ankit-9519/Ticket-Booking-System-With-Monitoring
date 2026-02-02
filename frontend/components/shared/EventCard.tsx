@@ -118,7 +118,7 @@ interface EventCardProps {
 
 export default function EventCard({ event, className }: EventCardProps) {
   const catStyle = getCategoryStyle(event.category);
-  const startDate = parseISO(event.startDate);
+  const startDate = parseISO(event.startDate ?? new Date().toISOString());
   const isSoldOut = event.availableSeats === 0;
 
   return (
@@ -209,7 +209,7 @@ export default function EventCard({ event, className }: EventCardProps) {
           <div className="flex items-center justify-between pt-2 border-t border-border">
             <div>
               <span className="text-lg font-bold text-foreground">
-                ₹{Number(event.price).toLocaleString()}
+                ₹{event.pricePerSeat}
               </span>
               <span className="text-xs text-muted-foreground"> / seat</span>
             </div>

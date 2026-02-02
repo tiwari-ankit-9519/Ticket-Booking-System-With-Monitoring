@@ -11,9 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-// ─── Availability section (live-refreshing) ─────────────────────────────────
 function AvailabilitySection({ eventId }: { eventId: string }) {
   const { data: avail, isLoading } = useEventAvailability(eventId);
+  console.log(avail);
 
   if (isLoading || !avail) {
     return (
@@ -77,13 +77,13 @@ function AvailabilitySection({ eventId }: { eventId: string }) {
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: event, isLoading } = useEventDetail(id);
   const { isAuthenticated } = useAuthStore();
 
-  // ── Loading skeleton ──
+  console.log(event);
+
   if (isLoading) {
     return (
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
@@ -105,7 +105,6 @@ export default function EventDetailPage() {
     );
   }
 
-  // ── Not found ──
   if (!event) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-24 text-center">
@@ -126,13 +125,12 @@ export default function EventDetailPage() {
     );
   }
 
-  const startDate = parseISO(event.startDate);
-  const endDate = parseISO(event.endDate);
+  const startDate = parseISO(event.startDate ?? new Date().toISOString());
+  const endDate = parseISO(event.endDate ?? new Date().toISOString());
   const isSoldOut = event.availableSeats === 0;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-      {/* Back link */}
       <Link
         href="/events"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-violet-600 dark:hover:text-violet-400 transition-colors mb-6"
@@ -140,7 +138,6 @@ export default function EventDetailPage() {
         <ArrowLeft className="h-3.5 w-3.5" /> Back to events
       </Link>
 
-      {/* Hero image */}
       <div className="relative w-full h-64 sm:h-80 rounded-2xl overflow-hidden bg-linear-to-br from-violet-100 to-blue-100 dark:from-violet-950/30 dark:to-blue-950/30 mb-8">
         {event.imageUrl ? (
           <Image
@@ -169,7 +166,6 @@ export default function EventDetailPage() {
           </div>
         )}
 
-        {/* Badges overlay */}
         <div className="absolute top-4 left-4 flex gap-2">
           <span className="px-3 py-1 rounded-full bg-white/90 dark:bg-black/60 backdrop-blur text-sm font-semibold text-foreground border border-border">
             {event.category}
@@ -182,15 +178,13 @@ export default function EventDetailPage() {
         </div>
       </div>
 
-      {/* Content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* ── Left: description ── */}
         <div className="lg:col-span-2 space-y-6">
           <div>
             <h1 className="text-3xl sm:text-4xl font-bold text-foreground leading-tight">
               {event.title}
             </h1>
-            {event.tags.length > 0 && (
+            {event?.tags?.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {event.tags.map((tag) => (
                   <span
@@ -208,7 +202,6 @@ export default function EventDetailPage() {
             {event.description}
           </p>
 
-          {/* Details grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/50 border border-border">
               <div className="w-9 h-9 rounded-lg bg-violet-100 dark:bg-violet-950/40 flex items-center justify-center shrink-0">
@@ -261,14 +254,13 @@ export default function EventDetailPage() {
           </div>
         </div>
 
-        {/* ── Right: booking card ── */}
         <div className="lg:col-span-1">
           <Card className="sticky top-24">
             <CardContent className="p-5 space-y-5">
               {/* Price */}
               <div className="flex items-end gap-1.5">
                 <span className="text-3xl font-bold text-foreground">
-                  ₹{Number(event.price).toLocaleString()}
+                  ₹{event?.pricePerSeat}
                 </span>
                 <span className="text-sm text-muted-foreground pb-1">
                   /seat

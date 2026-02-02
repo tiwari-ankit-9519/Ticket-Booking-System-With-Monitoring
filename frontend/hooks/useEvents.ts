@@ -52,8 +52,10 @@ const eventsApi = {
   },
 
   getEventById: async (id: string) => {
-    const response = await api.get<ApiResponse<Event>>(`/api/events/${id}`);
-    return response.data.data;
+    const response = await api.get<ApiResponse<{ event: Event }>>(
+      `/api/events/${id}`,
+    );
+    return response.data.data.event;
   },
 
   getFeaturedEvents: async () => {
